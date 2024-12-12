@@ -9,8 +9,8 @@ function saludar(nombres){
 3. git commit -m "[Mensaje identificador]"
 4. git push origin [nombre de la rama] */
 
-saludar("kike");
-
+saludar(kik);
+saludar();
 console.log('nombres');
 console.log("CAMBIOS ALV")
 
