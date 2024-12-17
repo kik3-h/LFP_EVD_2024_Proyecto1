@@ -9,9 +9,9 @@ function saludar(nombres){
 3. git commit -m "[Mensaje identificador]"
 4. git push origin [nombre de la rama] */
 
-saludar(kik);
+saludar("kike");
 saludar();
 console.log('nombres');
 console.log("CAMBIOS ALV")
-
+console.log("PRUEBA CAMBIO A NVM")
 console.log("MAS CAMBIOS JAJA ME CONFUNDIO EN UN DIGITO AL CAMBIAR DE NOMBRE JASKJD");
