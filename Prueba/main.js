@@ -15,3 +15,12 @@ console.log('nombres');
 console.log("CAMBIOS ALV")
 console.log("PRUEBA CAMBIO A NVM")
 console.log("MAS CAMBIOS JAJA ME CONFUNDIO EN UN DIGITO AL CAMBIAR DE NOMBRE JASKJD");
+
+for (let i=0; i <20;i++)
+{
+    saludar("keks")
+    console.log(i);
+    //console.log("hola ${nombres}")
+}
+
+saludar('kike')
