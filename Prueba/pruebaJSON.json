@@ -1,0 +1,46 @@
+{
+   "operaciones": [
+      {
+	"operacion": "suma",
+	"valor1": 4.5,
+	"valor2": 5.32
+      },
+      {
+	"operacion": "suma",
+	"valor1": 4.5,
+	"valor2": [
+	    {
+		"operacion": "potencia",
+		"valor1": 10,
+		"valor2": 3
+	    }
+	    ]
+      },
+      {
+	"operacion": "suma"
+	"valor1: [
+             {
+		  "operacion": "seno",
+		  "valor1":90
+              }
+	      ]
+	"valor2":5.32
+      },
+      {
+	"operacion": "division",
+	"valor1": 15,
+	"valor2":3
+      }
+    ],
+    "configuraciones":[
+      {
+	   "texto":"Operaciones",
+	   "fondo": "azul",
+	   "fuente":"blanco",
+	   "forma": "circulo"
+      }
+      ]
+} 
+	
+
+}

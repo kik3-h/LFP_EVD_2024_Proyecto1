@@ -8,6 +8,7 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "chalk": "^5.4.0",
     "fs": "^0.0.1-security",
     "graphviz": "^0.0.9",
     "typescript": "^5.7.2"
