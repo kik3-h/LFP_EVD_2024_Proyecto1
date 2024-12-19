@@ -31,22 +31,28 @@ class AFD {
                 continue;
             }
                 //tipos de casos segun el estado inicial y los caracteres que se encuentren
+            
             switch (state) { 
                 case 0: // Estado inicial
                     if (/[a-zA-Z]/.test(char)) { //si el caracter es una letra
-                        buffer += char;//se agrega al buffer
-                        state = 1; // Cambio al estado de identificadores o palabras reservadas
-                    } else if (/\d/.test(char)) {//si el caracter es un numero
-                        buffer += char;//
-                        state = 2; // Cambio al estado de números
-                    } else if (char === '+' || char === '-' || char === '*' || char === '/') { //si el caracter es un operador
-                        this.tokens.push(new Token('Operador', char, line, this.currentColumn)); //se agrega al token
-                    } else if (char === '{' || char === '}' || char === '(' || char === ')' || char === ';') { //si el caracter es un simbolo
-                        this.tokens.push(new Token('Símbolo', char, line, this.currentColumn)); //se agrega al token
+                        buffer += char; //se agrega al buffer
+                        state = 1; // Identificadores o palabras reservadas
+                    } else if (/\d/.test(char)) {
+                        buffer += char;
+                        state = 2; // Números
+                    } else if (char === '"' || char === "'") { //si el caracter es comillas dobles o comillas simples
+                        buffer += char;
+                        state = 3; // Cadenas de texto
+                    } else if (char === ':') { //si el caracter es dos puntos
+                        this.tokens.push(new Token('Dos puntos', char, line, this.currentColumn)); //se agrega al array de tokens el token de dos puntos
+                    } else if (/[{},\[\]]/.test(char)) { //si el caracter es llaves, corchetes o coma
+                        this.tokens.push(new Token('Símbolo JSON', char, line, this.currentColumn)); //se agrega al array de tokens el token de simbolo JSON
+                    } else if (char.trim() === '') { // Ignorar espacios en blanco
+                        // Ignorar espacios en blanco
                     } else {
-                        this.errors.push(new Error(char, 'Carácter no reconocido', line, this.currentColumn)); //si no es ninguno de los anteriores se agrega un error
+                        this.errors.push(new Error(char, 'Carácter no reconocido', line, this.currentColumn));
                     }
-                    break;
+                break;
 
                 case 1: // Identificadores o palabras reservadas
                     if (/[a-zA-Z0-9]/.test(char)) { //si el caracter es una letra o numero
@@ -69,6 +75,15 @@ class AFD {
                         i--; // Reprocesar el carácter actual
                     }
                     break;
+
+                case 3: // Cadenas de texto
+                    buffer += char;
+                    if (char === '"' || char === "'") { //si el caracter es comillas dobles o comillas simples
+                        this.tokens.push(new Token('Cadena', buffer, line, column));//se agrega al token de cadena al array de tokens
+                        buffer = '';
+                        state = 0; // Regresar al estado inicial
+                    }
+                break;
 
                 default:
                     this.errors.push(new Error(char, 'Estado desconocido', line, this.currentColumn)); //si no es ninguno de los anteriores se agrega un error
@@ -98,6 +113,4 @@ class AFD {
         return this.errors; //retorna los errores 
     }
 }
-
 module.exports = AFD; //exporta la clase AFD 
-

@@ -65,32 +65,37 @@ class Processor { //clase Processor
     }
 
     generateGraph(data, outputPath) { //metodo para generar el grafo por la libreria graphviz 
-        let dotContent = 'digraph G {\nnode [shape=ellipse];\n'; //contenido del archivo .dot 
+        let dotContent = 'digraph G {\nnode [shape=ellipse];\n'; //contenido del archivo DOT
 
-        function buildNode(operation, parentId) {
-            const nodeId = `node_${Math.random().toString(36).substr(2, 9)}`; //id del nodo 
-            dotContent += `"${nodeId}" [label="${operation.operacion}\\n(${operation.result})"];\n`; //contenido del nodo 
+        function buildNode(operation, parentId, config) { //funcion para construir los nodos del grafo
+            const nodeId = `node_${Math.random().toString(36).substr(2, 9)}`; //id del nodo
+            const color = config.fondo || 'white'; //color de fondo
+            const fontColor = config.fuente || 'black'; //color de fuente
+            const shape = config.forma || 'ellipse'; //forma del nodo
+
+            dotContent += `"${nodeId}" [label="${operation.operacion}\\n(${operation.result})", style=filled, fillcolor=${color}, fontcolor=${fontColor}, shape=${shape}];\n`;  //agrega el nodo al archivo DOT
 
             if (parentId) {
-                dotContent += `"${parentId}" -> "${nodeId}";\n`; //relacion entre nodos
+                dotContent += `"${parentId}" -> "${nodeId}";\n`; //agrega la relacion entre nodos
             }
 
             if (operation.valor1 && typeof operation.valor1 === 'object') { //si el valor1 es un objeto
-                buildNode(operation.valor1, nodeId); //construye el nodo
+                buildNode(operation.valor1, nodeId, config); //construye el nodo
             }
             if (operation.valor2 && typeof operation.valor2 === 'object') { //si el valor2 es un objeto
-                buildNode(operation.valor2, nodeId);    //construye el nodo
+                buildNode(operation.valor2, nodeId, config);
             }
         }
 
         data.forEach((operation) => { //por cada operacion en el archivo JSON
-            buildNode(operation); //construye el nodo
+            const config = operation.configuraciones || {}; // Configuración por nodo (color, forma, fuente)
+            buildNode(operation, null, config); //construye el nodo
         });
 
-        dotContent += '}'; //cierra el archivo .dot
+        dotContent += '}';
 
-        fs.writeFileSync(outputPath, dotContent);   //escribe el archivo .dot
-        console.log(`Gráfico generado: ${outputPath}`);     //muestra mensaje de grafo generado
+        fs.writeFileSync(outputPath, dotContent); //escribe el archivo DOT
+        console.log(`Gráfico generado: ${outputPath}`); //muestra mensaje de grafo generado
     }
 
     generateGraphImage(dotFilePath, imageOutputPath) {

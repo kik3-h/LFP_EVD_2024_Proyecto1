@@ -1,26 +1,25 @@
 const readline = require('readline'); //importa la libreria readline para leer la entrada de datos por consola  
 const fs = require('fs'); //importa la libreria fs para leer y escribir archivos 
 const AFD = require('./classes/AFD'); //importa la clase AFD para analizar los tokens y errores 
-// Códigos ANSI para colores
-const RESET = "\x1b[0m"; // Reset
-const RED = "\x1b[31m"; // color rojo xd
-const GREEN = "\x1b[32m"; // verde
-const YELLOW = "\x1b[33m"; // amarillo
-const BLUE = "\x1b[34m"; // azul
 const Processor = require('./classes/Processor');
-
-
 
 const rl = readline.createInterface({ //crea una interfaz de lectura y escritura 
     input: process.stdin,
     output: process.stdout
 });
 
-const afd = new AFD(); 
-const processor = new Processor();
+const afd = new AFD();  //crea un objeto de la clase AFD
+const path = require('path'); //importa la libreria path para manejar rutas de archivos
+const processor = new Processor(); //
+/*const chalk = require('chalk').default;
+const BLUE = chalk.blueBright;
+const RED = chalk.redBright;
+const GREEN = chalk.greenBright;
+const YELLOW = chalk.yellowBright;
+const RESET = chalk.reset;*/
 
 function showMenu() { //funcion para mostrar el menu
-    console.log('${BLUE}=========================================================================${RESET}');
+    console.log('=========================================================================');
     console.log('       \n* * * * * * * * Menú * * * * * * * *');
     console.log('       1. Abrir archivo JSON');
     console.log('       2. Analizar texto léxicamente');
@@ -35,11 +34,11 @@ function showMenu() { //funcion para mostrar el menu
 function handleOption(option) { //funcion para manejar las opciones del menu 
     switch (option) { 
         case '1':
-            rl.question('Ingrese la ruta del archivo JSON: ', (path) => { //pregunta al usuario la ruta del archivo JSON
-                openFile(path); //abre el archivo 
+            rl.question('Ingrese la ruta del archivo JSON: ', (relativePath) => { //pregunta al usuario la ruta del archivo JSON
+                openFile(relativePath); //abre el archivo 
                 showMenu(); //muestra el menu
             });
-            break;
+        break;
 
         case '2': // Analizar texto léxico
             rl.question('Ingrese el texto a analizar: ', (text) => {
@@ -47,7 +46,7 @@ function handleOption(option) { //funcion para manejar las opciones del menu
                 console.log('\nAnálisis completado.');
                 showMenu();
             });
-            break;
+        break;
 
         case '3':
             console.log('\nErrores detectados:'); //muestra los errores detectados 
@@ -55,20 +54,24 @@ function handleOption(option) { //funcion para manejar las opciones del menu
                 console.log(`${index + 1}. ${err.value} - ${err.description} (Línea: ${err.line}, Columna: ${err.column})`); //muestra el error      
             });
             showMenu();
-            break;
+        break;
 
         case '4':
             generateReports(); //genera los reportes 
             console.log('\nReporte generado en la carpeta "reports".'); 
             showMenu();
-            break;
+        break;
 
         case '5': // Procesar archivo JSON
-            rl.question('Ingrese la ruta del archivo JSON: ', (path) => {
-                processFile(path);
+            rl.question('Ingrese la ruta del archivo JSON: ', (relativePath) => { //pregunta al usuario la ruta del archivo JSON 
+                const content = openFile(relativePath); //abre el archivo
+                if (content) {
+                    processor.processOperations(content); //procesa las operaciones
+                    console.log('\nOperaciones procesadas.');
+                }
                 showMenu();
             });
-            break;
+        break;
 
         case '6': // Generar gráfico de operaciones
             rl.question('Ingrese la ruta del archivo DOT: ', (dotPath) => {
@@ -77,7 +80,7 @@ function handleOption(option) { //funcion para manejar las opciones del menu
                 console.log(`Gráfico generado en ${imageOutputPath}`);
                 showMenu();
             });
-            break;
+        break;
 
         case '0':
             console.log('Cerrando la aplicación...');
@@ -92,17 +95,30 @@ function handleOption(option) { //funcion para manejar las opciones del menu
     }
 }
 
-function openFile(path) { // funcion para abrir el archivo  
+function openFile(relativePath) { // funcion para abrir el archivo JSON  
     try {
-        const content = fs.readFileSync(path, 'utf-8'); //lee el archivo 
+        const absolutePath = path.resolve(relativePath); // Convertir a ruta absoluta 
+        const content = fs.readFileSync(absolutePath, 'utf-8'); // Leer el archivo 
         console.log('\nArchivo cargado exitosamente.');
-        console.log(content);
-    } catch (err) { 
-        console.log('\nError al abrir el archivo:', err.message);
+        return content;
+    } catch (err) {
+        console.log(`\nError al abrir el archivo: ${err.message}`);
+        return null;
+    }
+}
+
+function ensureReportsFolder() {
+    const reportsPath = path.resolve('./reports');
+    if (!fs.existsSync(reportsPath)) { //si la carpeta reports no existe la crea
+        console.log('Creando carpeta "reports"...');    
+        fs.mkdirSync(reportsPath); //crea la carpeta reports
+    }else{
+        console.log('La carpeta "reports" ya existe.'); 
     }
 }
 
 function generateReports() { //funcion para generar los reportes 
+    ensureReportsFolder(); // Me aseguro de que la carpeta exista
     const tokens = afd.getTokens();
     const errors = afd.getErrors();
     const results = processor.getResults();
