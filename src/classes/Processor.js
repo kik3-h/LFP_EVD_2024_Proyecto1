@@ -1,40 +1,37 @@
 
-const fs = require('fs'); //importa la libreria fs para leer y escribir archivos
-const { exec } = require('child_process');  //importa la libreria child_process para ejecutar comandos en la terminal
+const fs = require('fs'); // Importa la librería fs para leer y escribir archivos
+const path = require('path'); // Asegurémonos de importar el módulo path
+const { exec } = require('child_process'); // Importa la librería child_process para ejecutar comandos
 
-class Processor { //clase Processor
+class Processor {
     constructor() {
-        this.results = [];  //array de resultados
-        this.errors = []; //array de errores
+        this.results = []; // Array de resultados
+        this.errors = [];  // Array de errores
     }
 
-    processOperations(jsonContent) { //metodo para procesar las operaciones del archivo JSON
-        const data = JSON.parse(jsonContent);   //parsea el contenido del archivo JSON
-        if (!data.operaciones) { //si no hay operaciones en el archivo
-            this.errors.push({ description: "No se encontraron operaciones en el archivo." });
-            return;
+    processOperations(json) {
+        try {
+            const operations = json.operaciones;
+            operations.forEach((operation, index) => {
+                try {
+                    const result = this.resolveOperation(operation);
+                    this.results.push({ index, operation, result });
+                } catch (error) {
+                    this.errors.push({ operation, error: error.message });
+                }
+            });
+        } catch (error) {
+            console.error('Error procesando operaciones:', error.message);
         }
-
-        data.operaciones.forEach((operation, index) => { //por cada operacion en el archivo JSON 
-            try {
-                const result = this.resolveOperation(operation); //resuelve la operacion 
-                this.results.push({ index, operation, result }); //agrega el resultado al array de resultados 
-            } catch (error) { // por si hay un error
-                this.errors.push({
-                    description: `Error en la operación ${index + 1}: ${error.message}`,
-                });
-            }
-        });
     }
 
-    resolveOperation(operation) { //metodo para resolver las operaciones 
-        const { operacion, valor1, valor2 } = operation; //obtiene la operacion, valor1 y valor2 de la operacion 
+    resolveOperation(operation) {
+        const { operacion, valor1, valor2 } = operation;
 
-        // Resolver valores anidados
-        const value1 = typeof valor1 === 'object' ? this.resolveOperation(valor1) : valor1; //resuelve el valor1 de la operacion
+        const value1 = typeof valor1 === 'object' ? this.resolveOperation(valor1) : valor1;
         const value2 = typeof valor2 === 'object' ? this.resolveOperation(valor2) : valor2;
 
-        switch (operacion.toLowerCase()) { //tipos de operaciones 
+        switch (operacion.toLowerCase()) {
             case 'suma':
                 return Number(value1) + Number(value2);
             case 'resta':
@@ -52,11 +49,11 @@ class Processor { //clase Processor
                 if (Number(value1) === 0) throw new Error("Inverso de cero no definido.");
                 return 1 / Number(value1);
             case 'seno':
-                return Math.sin(Number(value1));
+                return Math.sin(this.toRadians(Number(value1)));
             case 'coseno':
-                return Math.cos(Number(value1));
+                return Math.cos(this.toRadians(Number(value1)));
             case 'tangente':
-                return Math.tan(Number(value1));
+                return Math.tan(this.toRadians(Number(value1)));
             case 'mod':
                 return Number(value1) % Number(value2);
             default:
@@ -64,57 +61,60 @@ class Processor { //clase Processor
         }
     }
 
-    generateGraph(data, outputPath) { //metodo para generar el grafo por la libreria graphviz 
-        let dotContent = 'digraph G {\nnode [shape=ellipse];\n'; //contenido del archivo DOT
+    toRadians(degrees) {
+        return (degrees * Math.PI) / 180;
+    }
 
-        function buildNode(operation, parentId, config) { //funcion para construir los nodos del grafo
-            const nodeId = `node_${Math.random().toString(36).substr(2, 9)}`; //id del nodo
-            const color = config.fondo || 'white'; //color de fondo
-            const fontColor = config.fuente || 'black'; //color de fuente
-            const shape = config.forma || 'ellipse'; //forma del nodo
-
-            dotContent += `"${nodeId}" [label="${operation.operacion}\\n(${operation.result})", style=filled, fillcolor=${color}, fontcolor=${fontColor}, shape=${shape}];\n`;  //agrega el nodo al archivo DOT
-
+    generateGraph(data, outputPath) {
+        let dotContent = 'digraph G {\nnode [shape=ellipse];\n';
+        function buildNode(operation, parentId, config) {
+            const nodeId = `node_${Math.random().toString(36).substr(2, 9)}`;
+            const color = config.fondo || 'white';
+            const fontColor = config.fuente || 'black';
+            const shape = config.forma || 'ellipse';
+    
+            dotContent += `"${nodeId}" [label="${operation.operacion}\\n(${operation.result})", style=filled, fillcolor=${color}, fontcolor=${fontColor}, shape=${shape}];\n`;
+    
             if (parentId) {
-                dotContent += `"${parentId}" -> "${nodeId}";\n`; //agrega la relacion entre nodos
+                dotContent += `"${parentId}" -> "${nodeId}";\n`;
             }
-
-            if (operation.valor1 && typeof operation.valor1 === 'object') { //si el valor1 es un objeto
-                buildNode(operation.valor1, nodeId, config); //construye el nodo
+    
+            if (operation.valor1 && typeof operation.valor1 === 'object') {
+                buildNode(operation.valor1, nodeId, config);
             }
-            if (operation.valor2 && typeof operation.valor2 === 'object') { //si el valor2 es un objeto
+            if (operation.valor2 && typeof operation.valor2 === 'object') {
                 buildNode(operation.valor2, nodeId, config);
             }
         }
-
-        data.forEach((operation) => { //por cada operacion en el archivo JSON
-            const config = operation.configuraciones || {}; // Configuración por nodo (color, forma, fuente)
-            buildNode(operation, null, config); //construye el nodo
+    
+        data.forEach((operation) => {
+            const config = operation.configuraciones || {};
+            buildNode(operation, null, config);
         });
-
+    
         dotContent += '}';
-
-        fs.writeFileSync(outputPath, dotContent); //escribe el archivo DOT
-        console.log(`Gráfico generado: ${outputPath}`); //muestra mensaje de grafo generado
+        fs.writeFileSync(outputPath, dotContent);
+        console.log(`Gráfico generado: ${outputPath}`);
     }
 
     generateGraphImage(dotFilePath, imageOutputPath) {
-        exec(`dot -Tpng ${dotFilePath} -o ${imageOutputPath}`, (error) => { //ejecuta el comando dot para generar la imagen
+        exec(`dot -Tpng ${dotFilePath} -o ${imageOutputPath}`, (error) => {
             if (error) {
-                console.error('Error al generar la imagen:', error); //si hay un error muestra mensaje de error 
+                console.error('Error al generar la imagen:', error);
             } else {
-                console.log(`Imagen generada: ${imageOutputPath}`); //muestra mensaje de imagen generada
+                console.log(`----------------------------------------`);
+                console.log(`Imagen generada CORRECTAMENTE EN: ${imageOutputPath}`);
             }
         });
     }
 
-    getResults() { 
-        return this.results; //retorna los resultados 
+    getResults() {
+        return this.results;
     }
 
     getErrors() {
-        return this.errors;     //retorna los errores
+        return this.errors;
     }
 }
 
-module.exports = Processor; // sisi exporta la clase y sus metodos
+module.exports = Processor;

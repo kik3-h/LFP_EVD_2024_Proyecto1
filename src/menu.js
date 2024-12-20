@@ -11,6 +11,7 @@ const rl = readline.createInterface({ //crea una interfaz de lectura y escritura
 const afd = new AFD();  //crea un objeto de la clase AFD
 const path = require('path'); //importa la libreria path para manejar rutas de archivos
 const processor = new Processor(); //
+
 /*const chalk = require('chalk').default;
 const BLUE = chalk.blueBright;
 const RED = chalk.redBright;
@@ -19,6 +20,7 @@ const YELLOW = chalk.yellowBright;
 const RESET = chalk.reset;*/
 
 function showMenu() { //funcion para mostrar el menu
+    
     console.log('=========================================================================');
     console.log('       \n* * * * * * * * Menú * * * * * * * *');
     console.log('       1. Abrir archivo JSON');
@@ -26,6 +28,7 @@ function showMenu() { //funcion para mostrar el menu
     console.log('       3. Mostrar errores');
     console.log('       4. Generar reporte');
     console.log('       5. Procesar archivo JSON');
+    console.log('       6. Generar gráfico de operaciones');
     console.log('       0. Salir');
     console.log('=========================================================================');
     rl.question('Seleccione una opción: ', handleOption); //pregunta al usuario que opcion desea seleccionar  
@@ -62,13 +65,10 @@ function handleOption(option) { //funcion para manejar las opciones del menu
             showMenu();
         break;
 
-        case '5': // Procesar archivo JSON
-            rl.question('Ingrese la ruta del archivo JSON: ', (relativePath) => { //pregunta al usuario la ruta del archivo JSON 
-                const content = openFile(relativePath); //abre el archivo
-                if (content) {
-                    processor.processOperations(content); //procesa las operaciones
-                    console.log('\nOperaciones procesadas.');
-                }
+        case '5': // Procesar JSON
+            rl.question('Ingrese la ruta del archivo JSON: ', (relativePath) => { //pregunta al usuario la ruta del archivo JSON
+                console.log('Ruta ingresada por el usuario:', relativePath); // Depuración
+                handleProcessOperations(relativePath); //procesa las operaciones del archivo JSON
                 showMenu();
             });
         break;
@@ -88,10 +88,50 @@ function handleOption(option) { //funcion para manejar las opciones del menu
             break;
 
         default:
-            console.log('${RED}############################${RESET}');
+            console.log('############################');
             console.log('OPCION NO VALIDA NMMS.');
-            console.log('${RED}############################${RESET}');
+            console.log('############################');
             showMenu();
+    }
+}
+
+function handleProcessOperations(jsonPath) {
+    try {
+        console.log('Tipo de jsonPath:', typeof jsonPath); // Depuración
+        console.log('Contenido de jsonPath:', jsonPath); // Depuración
+
+        // Asegurarnos de que jsonPath sea una cadena
+        if (typeof jsonPath !== 'string') {
+            throw new Error(`El argumento jsonPath no es una cadena. Tipo recibido: ${typeof jsonPath}`);
+        }
+
+        // Convertir la ruta a absoluta
+        const absolutePath = path.resolve(jsonPath);
+        console.log('Ruta absoluta procesada:', absolutePath); // Depuración
+
+        // Verificar si el archivo existe
+        if (!fs.existsSync(absolutePath)) {
+            throw new Error('El archivo especificado no existe.');
+        }
+
+        // Leer el contenido del archivo
+        const jsonContent = fs.readFileSync(absolutePath, 'utf-8');
+        console.log('Contenido del archivo JSON:', jsonContent); // Depuración
+
+        // Parsear el contenido del archivo
+        const json = JSON.parse(jsonContent);
+
+        // Procesar operaciones
+        const processor = new Processor();
+        processor.processOperations(json);
+
+        // Generar gráfico
+        const graphPath = './reports/graph.dot';
+        processor.generateGraph(processor.results, graphPath);
+
+        console.log('Operaciones procesadas y gráfico generado.');
+    } catch (error) {
+        console.error('Error:', error.message);
     }
 }
 
