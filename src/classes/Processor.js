@@ -1,6 +1,6 @@
 // src/classes/Processor.js
 const fs = require('fs');
-const { exec } = require('child_process');
+const { exec } = require('child_process'); // Importar el módulo child_process para ejecutar comandos en la terminal
 
 class Processor {
     constructor() {
