@@ -80,8 +80,6 @@ function analyzeFile() {
 
     // Análisis léxico del contenido
     afd.analyze(operations); 
-   // const operations2 = jsonData.operaciones || [];
-  //  processor.processOperations(operations2);
     console.log('Análisis léxico completado.');
 }
 
@@ -96,9 +94,9 @@ function showErrors() {
         // Convertir las operaciones a una cadena JSON con formato
         const operations = JSON.stringify(jsonData.operaciones, null, 2); // Convertir las operaciones a una cadena JSON con formato
         afd.analyze(operations);
-        const operations2 = jsonData.operaciones || [];
-        processor.processOperations(operations2);
-        const errors = afd.getErrors();
+        const operations2 = jsonData.operaciones || []; // Obtener las operaciones del archivo JSON
+        processor.processOperations(operations2); // Procesar las operaciones
+        const errors = afd.getErrors(); //Obtengo los datos dentro del arregli jaskj
         const errors2 = processor.getErrors();
         const contador1 = afd.getContadorErrores();
         const contador2 = processor.getContadorErrores();
@@ -112,8 +110,8 @@ function showErrors() {
             // Mostrar y generar reporte de errores léxicos
         if (errors.length > 0) {
             console.log('Errores léxicos:');
-            errors.forEach(err => console.log(err));
-            generateErrorReport(errors, 'errorReportLexicos.html');
+            errors.forEach(err => console.log(err)); // Mostrar los errores léxicos
+            generateErrorReport(errors, 'errorReportLexicos.html'); // Generar el reporte de errores léxicos
         }
 
         console.log('----------------------- ');
@@ -141,7 +139,7 @@ function generateReports() {
     }
 
     // Procesar operaciones
-    const operations = jsonData.operaciones || [];
+    const operations = jsonData.operaciones || []; // Obtener las operaciones del archivo JSON
     processor.processOperations(operations);
     
     // Generar reportes
@@ -194,12 +192,12 @@ function generateReports() {
 
         // Generar archivo DOT con configuraciones
         const dotPath = `${reportsPath}/operations.dot`;
-        const configurations = jsonData.configuraciones ? jsonData.configuraciones[0] : {};
-        processor.generateGraph(results, dotPath, configurations);
+        const configurations = jsonData.configuraciones ? jsonData.configuraciones[0] : {}; // Obtener las configuraciones del archivo JSON
+        processor.generateGraph(results, dotPath, configurations); // Generar el archivo DOT
 
         // Convertir DOT a PNG
         const imagePath = `${reportsPath}/graph.png`;
-        exec(`dot -Tpng ${dotPath} -o ${imagePath}`, (error) => {
+        exec(`dot -Tpng ${dotPath} -o ${imagePath}`, (error) => { // Ejecutar el comando dot para convertir el archivo DOT a PNG
             if (error) {
                 console.error('Error al generar la imagen:', error.message);
             } else {
