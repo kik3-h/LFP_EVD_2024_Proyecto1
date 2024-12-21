@@ -6,6 +6,11 @@ class Error {
         this.line = line; // Línea del error.
         this.column = column; // Columna del error.
     }
+    toString() {
+        return `Error: ${this.description}, Valor: ${this.value}, Línea: ${this.line}, Columna: ${this.column}`;
+    }
 }
+
+
 
 module.exports = Error;

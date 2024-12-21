@@ -4,7 +4,18 @@
 	"operacion": "suma",
 	"valor1": 4.5,
 	"valor2": 5.32
-      },
+},
+{
+	"#$ñ": "ll",
+	"operacion": "suma",
+	"valor1": -2,
+	"valor2": 5.32
+},
+	  {
+	"operacion": "suma",
+	"valor1": 7,
+	"valor2": 8
+	  },
       {
 	"operacion": "suma",
 	"valor1": 4.5,
@@ -28,17 +39,16 @@
       },
       {
 	"operacion": "division",
-	"valor1": 15,
-	"valor2":3
+	"valor1": 0,
+	"valor2":0
       }
     ],
-    "configuraciones":[
-      {
-	   "texto":"Operaciones",
-	   "fondo": "azul",
-	   "fuente":"blanco",
-	   "forma": "circulo"
-      }
+   "configuraciones": [
+        {
+            "fondo": "red",
+            "fuente": "black",
+            "forma": "diamond"
+        }
       ]
 } 
 	

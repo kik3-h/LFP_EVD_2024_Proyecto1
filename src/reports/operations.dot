@@ -1,0 +1,34 @@
+digraph Operations {
+            graph [bgcolor="red"];
+            node [fontcolor="black" shape="diamond"];
+            Operacion_1 [label="suma (9.82)"];
+    Operacion_1_Valor1 [label="4.5"];
+    Operacion_1 -> Operacion_1_Valor1;
+    Operacion_1_Valor2 [label="5.32"];
+    Operacion_1 -> Operacion_1_Valor2;
+    Operacion_2 [label="suma (3.3200000000000003)"];
+    Operacion_2_Valor1 [label="-2"];
+    Operacion_2 -> Operacion_2_Valor1;
+    Operacion_2_Valor2 [label="5.32"];
+    Operacion_2 -> Operacion_2_Valor2;
+    Operacion_3 [label="suma (15)"];
+    Operacion_3_Valor1 [label="7"];
+    Operacion_3 -> Operacion_3_Valor1;
+    Operacion_3_Valor2 [label="8"];
+    Operacion_3 -> Operacion_3_Valor2;
+    Operacion_4 [label="suma (9.82)"];
+    Operacion_4_Valor1 [label="4.5"];
+    Operacion_4 -> Operacion_4_Valor1;
+    Operacion_4_Valor2 [label="5.32"];
+    Operacion_4 -> Operacion_4_Valor2;
+    Operacion_5 [label="suma (3.3200000000000003)"];
+    Operacion_5_Valor1 [label="-2"];
+    Operacion_5 -> Operacion_5_Valor1;
+    Operacion_5_Valor2 [label="5.32"];
+    Operacion_5 -> Operacion_5_Valor2;
+    Operacion_6 [label="suma (15)"];
+    Operacion_6_Valor1 [label="7"];
+    Operacion_6 -> Operacion_6_Valor1;
+    Operacion_6_Valor2 [label="8"];
+    Operacion_6 -> Operacion_6_Valor2;
+}

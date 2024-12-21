@@ -1,111 +1,107 @@
-
-const fs = require('fs'); // Importa la librería fs para leer y escribir archivos
-const path = require('path'); // Asegurémonos de importar el módulo path
-const { exec } = require('child_process'); // Importa la librería child_process para ejecutar comandos
+// src/classes/Processor.js
+const fs = require('fs');
+const { exec } = require('child_process');
 
 class Processor {
     constructor() {
-        this.results = []; // Array de resultados
-        this.errors = [];  // Array de errores
+        this.results = [];
+        this.errors = [];
+        this.contadorErrores = 0;
     }
 
-    processOperations(json) {
-        try {
-            const operations = json.operaciones;
-            operations.forEach((operation, index) => {
-                try {
-                    const result = this.resolveOperation(operation);
-                    this.results.push({ index, operation, result });
-                } catch (error) {
-                    this.errors.push({ operation, error: error.message });
-                }
-            });
-        } catch (error) {
-            console.error('Error procesando operaciones:', error.message);
-        }
+    processOperations(operations) {
+        operations.forEach((operation, index) => {
+            let line = 1; // Contador de líneas
+            let column = 1; // Contador de columnas
+            try {
+                const result = this.resolveOperation(operation);
+                this.results.push({ index, operation, result });
+            } catch (err) {
+                this.contadorErrores++;
+                this.errors.push({ index, operation, description: err.message, line, column });
+            }
+        });
     }
 
     resolveOperation(operation) {
+        if (!operation || !operation.operacion) {
+            throw new Error('Operación no definida o faltante.');
+        }
+
         const { operacion, valor1, valor2 } = operation;
 
-        const value1 = typeof valor1 === 'object' ? this.resolveOperation(valor1) : valor1;
-        const value2 = typeof valor2 === 'object' ? this.resolveOperation(valor2) : valor2;
+        const v1 = typeof valor1 === 'object' ? this.resolveOperation(valor1) : valor1;
+        const v2 = typeof valor2 === 'object' ? this.resolveOperation(valor2) : valor2;
 
         switch (operacion.toLowerCase()) {
             case 'suma':
-                return Number(value1) + Number(value2);
+                return Number(v1) + Number(v2);
             case 'resta':
-                return Number(value1) - Number(value2);
+                return Number(v1) - Number(v2);
             case 'multiplicacion':
-                return Number(value1) * Number(value2);
+                return Number(v1) * Number(v2);
             case 'division':
-                if (Number(value2) === 0) throw new Error("División entre cero.");
-                return Number(value1) / Number(value2);
+                if (Number(v2) === 0 || Number(v1) === 0) {
+                    this.contadorErrores++
+                   // this.errors.push({index, operation, description: 'Error División por cero detectada xd.',line, column });
+                    throw new Error('División por cero ERRor.');
+                }
+                return Number(v1) / Number(v2);
             case 'potencia':
-                return Math.pow(Number(value1), Number(value2));
+                return Math.pow(Number(v1), Number(v2));
             case 'raiz':
-                return Math.pow(Number(value1), 1 / Number(value2));
-            case 'inverso':
-                if (Number(value1) === 0) throw new Error("Inverso de cero no definido.");
-                return 1 / Number(value1);
-            case 'seno':
-                return Math.sin(this.toRadians(Number(value1)));
-            case 'coseno':
-                return Math.cos(this.toRadians(Number(value1)));
-            case 'tangente':
-                return Math.tan(this.toRadians(Number(value1)));
-            case 'mod':
-                return Number(value1) % Number(value2);
+                if (Number(v1) < 0) {
+                    this.contadorErrores++;
+                    throw new Error('Raíz cuadrada de un número negativo.');
+                }
+                return Math.pow(Number(v1), 1 / Number(v2));
             default:
-                throw new Error(`Operación no reconocida: ${operacion}`);
+                this.contadorErrores++;
+                throw new Error(`Operación desconocida: ${operacion}`);
         }
     }
 
-    toRadians(degrees) {
-        return (degrees * Math.PI) / 180;
-    }
+    generateGraph(results, dotPath, configurations) {
+        // Extraer configuraciones
+        const backgroundColor = configurations.fondo || "white";
+        const fontColor = configurations.fuente || "black";
+        const shape = configurations.forma || "ellipse";
 
-    generateGraph(data, outputPath) {
-        let dotContent = 'digraph G {\nnode [shape=ellipse];\n';
-        function buildNode(operation, parentId, config) {
-            const nodeId = `node_${Math.random().toString(36).substr(2, 9)}`;
-            const color = config.fondo || 'white';
-            const fontColor = config.fuente || 'black';
-            const shape = config.forma || 'ellipse';
-    
-            dotContent += `"${nodeId}" [label="${operation.operacion}\\n(${operation.result})", style=filled, fillcolor=${color}, fontcolor=${fontColor}, shape=${shape}];\n`;
-    
-            if (parentId) {
-                dotContent += `"${parentId}" -> "${nodeId}";\n`;
-            }
-    
-            if (operation.valor1 && typeof operation.valor1 === 'object') {
-                buildNode(operation.valor1, nodeId, config);
-            }
-            if (operation.valor2 && typeof operation.valor2 === 'object') {
-                buildNode(operation.valor2, nodeId, config);
-            }
-        }
-    
-        data.forEach((operation) => {
-            const config = operation.configuraciones || {};
-            buildNode(operation, null, config);
-        });
-    
-        dotContent += '}';
-        fs.writeFileSync(outputPath, dotContent);
-        console.log(`Gráfico generado: ${outputPath}`);
-    }
+        // Crear contenido del archivo DOT
+        let dotContent = `digraph Operations {
+            graph [bgcolor="${backgroundColor}"];
+            node [fontcolor="${fontColor}" shape="${shape}"];
+        `;
 
-    generateGraphImage(dotFilePath, imageOutputPath) {
-        exec(`dot -Tpng ${dotFilePath} -o ${imageOutputPath}`, (error) => {
-            if (error) {
-                console.error('Error al generar la imagen:', error);
+        results.forEach((res, index) => {
+            const operationLabel = `Operacion_${index + 1}`;
+            dotContent += `    ${operationLabel} [label="${res.operation.operacion} (${res.result})"];\n`;
+
+            // Valor 1
+            if (typeof res.operation.valor1 === 'object') {
+                const subLabel1 = `Nodo_${index}_Valor1`;
+                dotContent += `    ${subLabel1} [label="${res.operation.valor1.operacion} (${res.result})"];\n`;
+                dotContent += `    ${operationLabel} -> ${subLabel1};\n`;
             } else {
-                console.log(`----------------------------------------`);
-                console.log(`Imagen generada CORRECTAMENTE EN: ${imageOutputPath}`);
+                dotContent += `    ${operationLabel}_Valor1 [label="${res.operation.valor1}"];\n`;
+                dotContent += `    ${operationLabel} -> ${operationLabel}_Valor1;\n`;
+            }
+
+            // Valor 2
+            if (typeof res.operation.valor2 === 'object') {
+                const subLabel2 = `Nodo_${index}_Valor2`;
+                dotContent += `    ${subLabel2} [label="${res.operation.valor2.operacion} (${res.result})"];\n`;
+                dotContent += `    ${operationLabel} -> ${subLabel2};\n`;
+            } else {
+                dotContent += `    ${operationLabel}_Valor2 [label="${res.operation.valor2}"];\n`;
+                dotContent += `    ${operationLabel} -> ${operationLabel}_Valor2;\n`;
             }
         });
+
+        dotContent += "}";
+
+        // Guardar contenido en el archivo DOT
+        fs.writeFileSync(dotPath, dotContent);
     }
 
     getResults() {
@@ -114,6 +110,9 @@ class Processor {
 
     getErrors() {
         return this.errors;
+    }
+    getContadorErrores(){
+        return this.contadorErrores;
     }
 }
 

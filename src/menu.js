@@ -1,250 +1,269 @@
-const readline = require('readline'); //importa la libreria readline para leer la entrada de datos por consola  
-const fs = require('fs'); //importa la libreria fs para leer y escribir archivos 
-const AFD = require('./classes/AFD'); //importa la clase AFD para analizar los tokens y errores 
+const readline = require('readline');
+const fs = require('fs');
+const path = require('path');
+const AFD = require('./classes/AFD');
 const Processor = require('./classes/Processor');
+const { exec } = require('child_process'); // Importar el módulo child_process para ejecutar comandos del sistema
+const afd = new AFD();
+const processor = new Processor();
 
-const rl = readline.createInterface({ //crea una interfaz de lectura y escritura 
+const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
 });
 
-const afd = new AFD();  //crea un objeto de la clase AFD
-const path = require('path'); //importa la libreria path para manejar rutas de archivos
-const processor = new Processor(); //
 
-/*const chalk = require('chalk').default;
-const BLUE = chalk.blueBright;
-const RED = chalk.redBright;
-const GREEN = chalk.greenBright;
-const YELLOW = chalk.yellowBright;
-const RESET = chalk.reset;*/
 
-function showMenu() { //funcion para mostrar el menu
-    
-    console.log('=========================================================================');
-    console.log('       \n* * * * * * * * Menú * * * * * * * *');
-    console.log('       1. Abrir archivo JSON');
-    console.log('       2. Analizar texto léxicamente');
-    console.log('       3. Mostrar errores');
-    console.log('       4. Generar reporte');
-    console.log('       5. Procesar archivo JSON');
-    console.log('       6. Generar gráfico de operaciones');
-    console.log('       0. Salir');
-    console.log('=========================================================================');
-    rl.question('Seleccione una opción: ', handleOption); //pregunta al usuario que opcion desea seleccionar  
+function showMenu() {
+    console.log('===================================================================');
+    console.log('       ¡ MENU PRINCIPAL ! ');
+    console.log('1. Abrir archivo JSON');
+    console.log('2. Analizar el archivo');
+    console.log('3. Mostrar errores');
+    console.log('4. Generar reportes');
+    console.log('0. Salir');
+    console.log('===================================================================');
+    console.log('                                                    by: kik3.h ');
+    rl.question('Seleccione una opción: ', handleOption);
 }
 
-function handleOption(option) { //funcion para manejar las opciones del menu 
-    switch (option) { 
-        case '1':
-            rl.question('Ingrese la ruta del archivo JSON: ', (relativePath) => { //pregunta al usuario la ruta del archivo JSON
-                openFile(relativePath); //abre el archivo 
-                showMenu(); //muestra el menu
-            });
-        break;
-
-        case '2': // Analizar texto léxico
-            rl.question('Ingrese el texto a analizar: ', (text) => {
-                afd.analyze(text);
-                console.log('\nAnálisis completado.');
+function handleOption(option) {
+    switch (option) {
+        case '1': // Abrir archivo JSON
+            rl.question('Ingrese la ruta del archivo JSON: ', (relativePath) => {
+                openFile(relativePath);
                 showMenu();
             });
-        break;
-
-        case '3':
-            console.log('\nErrores detectados:'); //muestra los errores detectados 
-            afd.getErrors().forEach((err, index) => { //por cada error muestra el valor, descripcion, linea y columna 
-                console.log(`${index + 1}. ${err.value} - ${err.description} (Línea: ${err.line}, Columna: ${err.column})`); //muestra el error      
-            });
+            break;
+        case '2': // Analizar el archivo
+            analyzeFile();
             showMenu();
-        break;
-
-        case '4':
-            generateReports(); //genera los reportes 
-            console.log('\nReporte generado en la carpeta "reports".'); 
+            break;
+        case '3': // Mostrar errores
+            showErrors();
             showMenu();
-        break;
-
-        case '5': // Procesar JSON
-            rl.question('Ingrese la ruta del archivo JSON: ', (relativePath) => { //pregunta al usuario la ruta del archivo JSON
-                console.log('Ruta ingresada por el usuario:', relativePath); // Depuración
-                handleProcessOperations(relativePath); //procesa las operaciones del archivo JSON
-                showMenu();
-            });
-        break;
-
-        case '6': // Generar gráfico de operaciones
-            rl.question('Ingrese la ruta del archivo DOT: ', (dotPath) => {
-                const imageOutputPath = './reports/graph.png';
-                processor.generateGraphImage(dotPath, imageOutputPath);
-                console.log(`Gráfico generado en ${imageOutputPath}`);
-                showMenu();
-            });
-        break;
-
-        case '0':
-            console.log('Cerrando la aplicación...');
+            break;
+        case '4': // Generar reportes
+            generateReports();
+            showMenu();
+            break;
+        case '0': // Salir
+            console.log('Saliendo del programa...');
             rl.close();
             break;
-
         default:
-            console.log('############################');
-            console.log('OPCION NO VALIDA NMMS.');
-            console.log('############################');
+            console.log('Opción no válida.');
             showMenu();
     }
 }
 
-function handleProcessOperations(jsonPath) {
+let jsonData = null;
+
+function openFile(relativePath) {
     try {
-        console.log('Tipo de jsonPath:', typeof jsonPath); // Depuración
-        console.log('Contenido de jsonPath:', jsonPath); // Depuración
-
-        // Asegurarnos de que jsonPath sea una cadena
-        if (typeof jsonPath !== 'string') {
-            throw new Error(`El argumento jsonPath no es una cadena. Tipo recibido: ${typeof jsonPath}`);
-        }
-
-        // Convertir la ruta a absoluta
-        const absolutePath = path.resolve(jsonPath);
-        console.log('Ruta absoluta procesada:', absolutePath); // Depuración
-
-        // Verificar si el archivo existe
-        if (!fs.existsSync(absolutePath)) {
-            throw new Error('El archivo especificado no existe.');
-        }
-
-        // Leer el contenido del archivo
-        const jsonContent = fs.readFileSync(absolutePath, 'utf-8');
-        console.log('Contenido del archivo JSON:', jsonContent); // Depuración
-
-        // Parsear el contenido del archivo
-        const json = JSON.parse(jsonContent);
-
-        // Procesar operaciones
-        const processor = new Processor();
-        processor.processOperations(json);
-
-        // Generar gráfico
-        const graphPath = './reports/graph.dot';
-        processor.generateGraph(processor.results, graphPath);
-
-        console.log('Operaciones procesadas y gráfico generado.');
-    } catch (error) {
-        console.error('Error:', error.message);
-    }
-}
-
-function openFile(relativePath) { // funcion para abrir el archivo JSON  
-    try {
-        const absolutePath = path.resolve(relativePath); // Convertir a ruta absoluta 
-        const content = fs.readFileSync(absolutePath, 'utf-8'); // Leer el archivo 
-        console.log('\nArchivo cargado exitosamente.');
-        return content;
+        const absolutePath = path.resolve(relativePath); // Obtener la ruta absoluta del archivo 
+        const content = fs.readFileSync(absolutePath, 'utf-8'); // Leer el contenido del archivo
+        jsonData = JSON.parse(content); // Convertir el contenido a un objeto JSON
+        console.log('Archivo cargado exitosamente.');
     } catch (err) {
-        console.log(`\nError al abrir el archivo: ${err.message}`);
-        return null;
+        console.log(`Error al abrir el archivo: ${err.message}`);
     }
 }
 
-function ensureReportsFolder() {
-    const reportsPath = path.resolve('./reports');
-    if (!fs.existsSync(reportsPath)) { //si la carpeta reports no existe la crea
-        console.log('Creando carpeta "reports"...');    
-        fs.mkdirSync(reportsPath); //crea la carpeta reports
+function analyzeFile() {
+    if (!jsonData) {
+        console.log('Primero debe abrir un archivo JSON.');
+        return;
+    }
+    const operations = JSON.stringify(jsonData.operaciones, null, 2); // Convertir las operaciones a una cadena JSON con formato
+    console.log('Contenido del archivo analizado:', operations);
+
+    // Análisis léxico del contenido
+    afd.analyze(operations); 
+   // const operations2 = jsonData.operaciones || [];
+  //  processor.processOperations(operations2);
+    console.log('Análisis léxico completado.');
+}
+
+function showErrors() {
+    if (!jsonData) {
+        console.log('Primero debe abrir un archivo JSON.');
+        return;
     }else{
-        console.log('La carpeta "reports" ya existe.'); 
+        console.log('Archivo JSON cargado exitosamente.');
+    }
+
+        // Convertir las operaciones a una cadena JSON con formato
+        const operations = JSON.stringify(jsonData.operaciones, null, 2); // Convertir las operaciones a una cadena JSON con formato
+        afd.analyze(operations);
+        const operations2 = jsonData.operaciones || [];
+        processor.processOperations(operations2);
+        const errors = afd.getErrors();
+        const errors2 = processor.getErrors();
+        const contador1 = afd.getContadorErrores();
+        const contador2 = processor.getContadorErrores();
+
+            // Verificar si existen errores y mostrar el contador de los mismos
+    if (errors.length > 0 || errors2.length > 0) {
+            console.log('Se encontraron errores:');
+            console.log('Errores léxicos: ', contador1);
+            console.log('Errores sintácticos: ', contador2);
+
+            // Mostrar y generar reporte de errores léxicos
+        if (errors.length > 0) {
+            console.log('Errores léxicos:');
+            errors.forEach(err => console.log(err));
+            generateErrorReport(errors, 'errorReportLexicos.html');
+        }
+
+        console.log('----------------------- ');
+
+        // Mostrar y generar reporte de errores sintácticos
+        if (errors2.length > 0) {
+            console.log('Errores sintácticos:');
+            errors2.forEach(err => console.log(err));
+            generateErrorReport(errors2, 'errorReportSintacticos.html');
+        }
+
+        return;
+    } else {
+        console.log('No se encontraron errores.');
     }
 }
 
-function generateReports() { //funcion para generar los reportes 
-    ensureReportsFolder(); // Me aseguro de que la carpeta exista
+//esto al elegir opcion 4
+function generateReports() {
+    if (!jsonData) {
+        console.log('       Primero debe abrir un archivo JSON.');
+        return;
+    }else{
+        console.log('       Archivo JSON cargado exitosamente.');
+    }
+
+    // Procesar operaciones
+    const operations = jsonData.operaciones || [];
+    processor.processOperations(operations);
+    
+    // Generar reportes
     const tokens = afd.getTokens();
-    const errors = afd.getErrors();
+    const afdErrors = afd.getErrors();
+    const processorErrors = processor.getErrors();
     const results = processor.getResults();
 
-    // Generar tabla de tokens
-    const tokensHtml = `
+     if (!results || results.length === 0) {
+         console.log('No hay resultados para generar reportes.');
+         return;
+     }
+
+    const reportsPath = './reports';
+    if (!fs.existsSync(reportsPath)) { // Si la carpeta reports no existe
+        fs.mkdirSync(reportsPath); // Crear la carpeta reports
+    }
+
+    // Generar tokens.html
+    let tokensHtml = `
         <html>
         <head><title>Reporte de Tokens</title></head>
         <body>
         <h1>Tabla de Tokens</h1>
-        <table border="1">
+        <table border="1" style="width: 100%; text-align: center; background-color: #d4f1f4;">
             <tr><th>#</th><th>Tipo</th><th>Valor</th><th>Línea</th><th>Columna</th></tr>
-            ${tokens.map((t, i) => `<tr><td>${i + 1}</td><td>${t.type}</td><td>${t.value}</td><td>${t.line}</td><td>${t.column}</td></tr>`).join('')} //por cada token muestra el indice, tipo, valor, linea y columna
+            ${tokens.map((t, i) => `<tr><td>${i + 1}</td><td>${t.type}</td><td>${t.value}</td><td>${t.line}</td><td>${t.column}</td></tr>`).join('')}
         </table>
         </body>
-        </html>
-    `;
-    fs.writeFileSync('./reports/tokens.html', tokensHtml); //escribe el archivo tokens.html
+        </html>`;
+    fs.writeFileSync(`${reportsPath}/tokens.html`, tokensHtml);
 
-    // Generar tabla de errores
-    const errorsHtml = `
+    // Generar errors.html
+    let errorsHtml = `
         <html>
         <head><title>Reporte de Errores</title></head>
         <body>
-        <h1>Tabla de Errores</h1>
-        <table border="1">
+        <h1>Tablas de Errores</h1>
+        <table border="1" style="width: 100%; text-align: center; background-color: #f8d7da;">
             <tr><th>#</th><th>Valor</th><th>Descripción</th><th>Línea</th><th>Columna</th></tr>
-            ${errors.map((e, i) => `<tr><td>${i + 1}</td><td>${e.value}</td><td>${e.description}</td><td>${e.line}</td><td>${e.column}</td></tr>`).join('')} //por cada error muestra el indice, valor, descripcion, linea y columna
+            ${afdErrors.map((e, i) => `<tr><td>${i + 1}</td><td>${e.value}</td><td>${e.description}</td><td>${e.line}</td><td>${e.column}</td></tr>`).join('')}
+        </table>
+        <table border="1" style="width: 100%; text-align: center; background-color: #f8d7da;">
+            <tr><th>#</th><th>Valor</th><th>Descripción</th><th>Línea</th><th>Columna</th></tr>
+            ${processorErrors.map((e, i) => `<tr><td>${i + 1}</td><td>${e.value || '-'}</td><td>${e.description}</td><td>${e.line || '-'}</td><td>${e.column || '-'}</td></tr>`).join('')}
         </table>
         </body>
-        </html>
-    `;
-    fs.writeFileSync('./reports/errors.html', errorsHtml); //escribe el archivo errors.html
+        </html>`;
+    fs.writeFileSync(`${reportsPath}/errors.html`, errorsHtml);
 
-    // Generar tabla de resultados
-    const resultsHtml = `
-        <html>
-        <head><title>Reporte de Resultados</title></head>
-        <body>
-        <h1>Resultados de las Operaciones</h1>
-        <table border="1">
-            <tr><th>#</th><th>Operación</th><th>Resultado</th></tr>
-            ${results.map((res, i) => ` //por cada resultado muestra el indice, operacion y resultado
-                <tr>
-                    <td>${i + 1}</td>
-                    <td>${JSON.stringify(res.operation)}</td> //muestra la operacion
-                    <td>${res.result}</td>
-                </tr>`).join('')}
-        </table>
-        <h2>Gráfico Generado</h2>
-        <img src="./graph.png" alt="Gráfico de operaciones" />
-        </body>
-        </html>
-    `;
-    fs.writeFileSync('./reports/results.html', resultsHtml); //escribe el archivo results.html
+        // Generar archivo DOT con configuraciones
+        const dotPath = `${reportsPath}/operations.dot`;
+        const configurations = jsonData.configuraciones ? jsonData.configuraciones[0] : {};
+        processor.generateGraph(results, dotPath, configurations);
 
-    // Generar archivo JSON de errores
-    fs.writeFileSync('./reports/errors.json', JSON.stringify(errors, null, 2)); //escribe el archivo errors.json
-    console.log('Reportes generados en la carpeta "reports".');
-}
-
-function processFile(path) { //funcion para procesar el archivo JSON
-    try {
-        const content = fs.readFileSync(path, 'utf-8'); //lee el archivo
-        processor.processOperations(content); //procesa las operaciones
-        const results = processor.getResults(); //obtiene los resultados
-        const errors = processor.getErrors(); //obtiene los errores
-
-        console.log('\nResultados:');   
-        results.forEach((res, index) => { //por cada resultado muestra el indice y el resultado
-            console.log(`${index + 1}. Resultado: ${res.result}`); //muestra el resultado de la operacion
+        // Convertir DOT a PNG
+        const imagePath = `${reportsPath}/graph.png`;
+        exec(`dot -Tpng ${dotPath} -o ${imagePath}`, (error) => {
+            if (error) {
+                console.error('Error al generar la imagen:', error.message);
+            } else {
+                console.log(`Gráfico generado correctamente en: ${imagePath}`);
+            }
         });
 
-        if (errors.length > 0) {
-            console.log('\nErrores encontrados:');
-            errors.forEach((err, index) => { //por cada error muestra la descripcion
-                console.log(`${index + 1}. ${err.description}`); //muestra la descripcion del error
-            });
-        }
+        // Generar results.html con gráfico
+        const resultsHtml = `
+            <html>
+            <head><title>Reporte de Resultados</title></head>
+            <body>
+            <h1>Resultados de las Operaciones</h1>
+            <table border="1" style="width: 100%; text-align: center; background-color: #e7f3fe;">
+                <tr><th>No.</th><th>Operación</th><th>Resultado</th></tr>
+                ${results.map((res, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${JSON.stringify(res.operation)}</td>
+                        <td>${res.result}</td>
+                    </tr>`).join('')}
+            </table>
+            <h2>Gráfico Generado</h2>
+            <img src="./graph.png" alt="Gráfico de operaciones" />
+            </body>
+            </html>`;
+        fs.writeFileSync(`${reportsPath}/results.html`, resultsHtml);
 
-        // Generar gráfico DOT
-        const dotPath = './reports/operations.dot';
-        processor.generateGraph(results, dotPath); //genera el grafo de las operaciones
-    } catch (err) {
-        console.error('Error al procesar el archivo:', err.message);
-    }
+        console.log('Reportes generados exitosamente en la carpeta "reports".');
 }
 
+    // Función para generar el reporte de errores en HTML
+    function generateErrorReport(errors, fileName) {
+        let htmlContent = `
+            <html>
+            <head><title>Reporte de Errores</title></head>
+            <body>
+                <h1>Errores Detectados</h1>
+                <table border="1">
+                    <tr>
+                        <th>Descripción</th>
+                        <th>Valor</th>
+                        <th>Línea</th>
+                        <th>Columna</th>
+                    </tr>
+        `;
+
+        errors.forEach(error => {
+            htmlContent += `
+                <tr>
+                    <td>${error.description}</td>
+                    <td>${error.value}</td>
+                    <td>${error.line || '-'}</td>
+                    <td>${error.column || '-'}</td>
+                </tr>
+            `;
+        });
+
+        htmlContent += `
+                </table>
+            </body>
+            </html>
+        `;
+
+        fs.writeFileSync(`./${fileName}`, htmlContent);
+    }
 showMenu();
